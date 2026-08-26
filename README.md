@@ -9,6 +9,8 @@
 - เปิด Civil 3D LandXML TIN Surface หลายพื้นผิวจากไฟล์เดียว พร้อมแปลงแกน N/E/Z เป็น E/N/Z
 - เปลี่ยนสี ความโปร่งใส หรือแสดงเฉดสีตามระดับของ LandXML Surface
 - คำนวณ Cut, Fill และ Net Volume ระหว่าง Existing และ Design Surface ด้วย Grid Cell และ Coverage
+- จำกัดพื้นที่ Cut / Fill โดยวาด Polygon บนพื้นผิว หรือเลือก Polyline ปิดจาก DXF
+- Export / Print รายงาน Cut / Fill เป็น PDF สองหน้า พร้อมภาพ Viewer ผลสรุป และพิกัดขอบเขต
 - สร้างพื้นผิวภูมิประเทศจาก GeoTIFF DEM พร้อมตรวจ EPSG/UTM
 - ใช้ PRS92 / Philippines Zone 3 (EPSG:3123) เป็นระบบพิกัดโครงการเริ่มต้น
 - แปลง PRS92 เป็น WGS84 อัตโนมัติสำหรับภาพดาวเทียมและ OSM โดยรักษาพิกัดสำรวจต้นฉบับ
