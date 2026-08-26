@@ -6,6 +6,9 @@
 
 - เปิด Point Cloud: LAS, LAZ และ PLY
 - เปิด Mesh Model: GLB, GLTF, OBJ, STL และ PLY
+- เปิด Civil 3D LandXML TIN Surface หลายพื้นผิวจากไฟล์เดียว พร้อมแปลงแกน N/E/Z เป็น E/N/Z
+- เปลี่ยนสี ความโปร่งใส หรือแสดงเฉดสีตามระดับของ LandXML Surface
+- คำนวณ Cut, Fill และ Net Volume ระหว่าง Existing และ Design Surface ด้วย Grid Cell และ Coverage
 - สร้างพื้นผิวภูมิประเทศจาก GeoTIFF DEM พร้อมตรวจ EPSG/UTM
 - ใช้ PRS92 / Philippines Zone 3 (EPSG:3123) เป็นระบบพิกัดโครงการเริ่มต้น
 - แปลง PRS92 เป็น WGS84 อัตโนมัติสำหรับภาพดาวเทียมและ OSM โดยรักษาพิกัดสำรวจต้นฉบับ
@@ -58,6 +61,7 @@ npm run preview
 | --- | --- |
 | Point Cloud | LAS, LAZ, PLY |
 | Mesh | GLB, GLTF, OBJ, STL, PLY |
+| Civil 3D Surface | LandXML (XML ที่มี Pnts และ Faces) |
 | Drawing | ASCII DXF |
 | Terrain | GeoTIFF DEM (TIF, TIFF) |
 

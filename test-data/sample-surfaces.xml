@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" version="1.2">
+  <Units><Metric linearUnit="meter" areaUnit="squareMeter" volumeUnit="cubicMeter"/></Units>
+  <Surfaces>
+    <Surface name="Existing Ground">
+      <Definition surfType="TIN">
+        <Pnts>
+          <P id="1">1000 500 10</P><P id="2">1000 510 10</P>
+          <P id="3">1010 510 10</P><P id="4">1010 500 10</P>
+        </Pnts>
+        <Faces><F>1 2 3</F><F>1 3 4</F></Faces>
+      </Definition>
+    </Surface>
+    <Surface name="Design Formation">
+      <Definition surfType="TIN">
+        <Pnts>
+          <P id="1">1000 500 11</P><P id="2">1000 510 11</P>
+          <P id="3">1010 510 11</P><P id="4">1010 500 11</P>
+        </Pnts>
+        <Faces><F>1 2 3</F><F>1 3 4</F></Faces>
+      </Definition>
+    </Surface>
+  </Surfaces>
+</LandXML>
