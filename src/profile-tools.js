@@ -30,7 +30,7 @@ function line(layerName,x1,y1,x2,y2,z1=0,z2=0){return pair(0,'LINE')+pair(8,laye
 function text(layerName,value,x,y,height=1.5){return pair(0,'TEXT')+pair(8,layerName)+pair(10,num(x))+pair(20,num(y))+pair(30,0)+pair(40,num(height))+pair(1,value)}
 function connectedLines(layerName,points,is3d=false){let out='';for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if(!a||!b)continue;out+=line(layerName,a.x,a.y,b.x,b.y,is3d?a.z||0:0,is3d?b.z||0:0)}return out}
 
-export function profileDxf(result,verticalExaggeration=5){
+export function profileDxf(result,verticalExaggeration=1){
   const valid=result.samples.filter(p=>Number.isFinite(p.elevation));if(valid.length<2)throw new Error('At least 2 valid elevation samples are required');const minZ=Math.min(...valid.map(p=>p.elevation)),maxZ=Math.max(...valid.map(p=>p.elevation)),datum=Math.floor(minZ/5)*5,anchorX=Math.min(...valid.map(p=>p.easting)),projectMinY=Math.min(...valid.map(p=>p.northing)),textHeight=Math.max(Math.min(result.totalLength/80,2.5),.5),profileHeight=Math.max((maxZ-datum)*verticalExaggeration,5),profileBaseY=projectMinY-profileHeight-textHeight*8;
   let entities=connectedLines('ALIGNMENT_3D',valid.map(p=>({x:p.easting,y:p.northing,z:p.elevation})),true);
   const profile=result.samples.map(p=>Number.isFinite(p.elevation)?{x:anchorX+p.station,y:profileBaseY+(p.elevation-datum)*verticalExaggeration}:null);entities+=connectedLines('LONG_PROFILE',profile)+line('GRID',anchorX,profileBaseY,anchorX+result.totalLength,profileBaseY)+text('ANNOTATION',`LONG PROFILE DATUM ${datum.toFixed(3)} V.E. ${verticalExaggeration}x`,anchorX,profileBaseY-textHeight*2,textHeight);
