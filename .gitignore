@@ -23,3 +23,8 @@ dist/
 !test-data/*.dxf
 !test-data/*.ply
 !test-data/sample-stockpile.obj
+
+# Local QA artifacts
+.playwright-cli/
+output/
+tmp/
