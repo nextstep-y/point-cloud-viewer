@@ -43,7 +43,7 @@ document.querySelector('#app').innerHTML = `
       </aside>
       <section class="viewport-wrap">
         <div id="viewport"></div>
-        <div class="view-tools"><button data-view="top" title="Top view">TOP</button><button data-view="iso" class="active" title="Isometric view">ISO</button><button id="fitView" class="fit-all" title="Zoom ดูทุกชั้นข้อมูล">⌗ ดูทั้งหมด</button><button id="autoPivotBtn" class="pivot-button active" title="หมุนรอบพื้นผิวใต้เมาส์โดยอัตโนมัติ">⟳ Auto Pivot</button><button id="pivotBtn" class="pivot-button" title="ย้ายจุดศูนย์กลางการหมุนและซูมด้วยตนเอง">◎ ตั้งศูนย์</button><button id="measureBtn" class="measure-button" title="Measure XYZ">↔ วัดระยะ</button><button id="volumeBtn" class="volume-button" title="วัดปริมาตรกองวัสดุ">▱ วัดปริมาตร</button><button id="earthworkBtn" class="volume-button" title="คำนวณดินตัดดินถมระหว่างสองพื้นผิว">▰ Cut / Fill</button><button id="profileBtn" class="profile-button" title="สร้าง Long Profile และ Cross Section">⌁ Profile</button></div>
+        <div class="view-tools"><button data-view="top" title="Top view">TOP</button><button data-view="iso" class="active" title="Isometric view">ISO</button><button id="fitView" class="fit-all" title="Zoom ดูทุกชั้นข้อมูล">⌗ ดูทั้งหมด</button><button id="skyBtn" class="sky-button active" title="สลับพื้นหลังท้องฟ้าและพื้นหลังมืด">☀ Sky</button><button id="autoPivotBtn" class="pivot-button active" title="หมุนรอบพื้นผิวใต้เมาส์โดยอัตโนมัติ">⟳ Auto Pivot</button><button id="pivotBtn" class="pivot-button" title="ย้ายจุดศูนย์กลางการหมุนและซูมด้วยตนเอง">◎ ตั้งศูนย์</button><button id="measureBtn" class="measure-button" title="Measure XYZ">↔ วัดระยะ</button><button id="volumeBtn" class="volume-button" title="วัดปริมาตรกองวัสดุ">▱ วัดปริมาตร</button><button id="earthworkBtn" class="volume-button" title="คำนวณดินตัดดินถมระหว่างสองพื้นผิว">▰ Cut / Fill</button><button id="profileBtn" class="profile-button" title="สร้าง Long Profile และ Cross Section">⌁ Profile</button></div>
         <div class="compass"><span>N</span><i></i></div>
         <div class="welcome" id="welcome"><span class="eyebrow">SURVEY-GRADE 3D WORKSPACE</span><h2>ตรวจสอบโมเดลใน<br><em>พิกัดจริง</em></h2><p>รวม Point Cloud, Mesh และแบบ DXF ไว้ในพื้นที่เดียว พร้อมปรับค่าระดับแบบเรียลไทม์</p><button class="primary large" id="startBtn">＋ นำเข้าข้อมูลแรก</button><div class="format-row"><span><i class="cyan"></i>POINT CLOUD</span><span><i class="amber"></i>MESH MODEL</span><span><i class="red"></i>DXF DRAWING</span></div></div>
         <div class="loading" id="loading" hidden><span></span><b>กำลังประมวลผลไฟล์…</b></div>
@@ -77,8 +77,9 @@ document.querySelector('#app').innerHTML = `
 
 const viewport = document.querySelector('#viewport');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x07100f);
-scene.fog = new THREE.FogExp2(0x07100f, 0.00035);
+const darkBackground=new THREE.Color(0x07100f),skyBackground=new THREE.Color(0x92bdd2);
+scene.background = skyBackground;
+scene.fog = new THREE.FogExp2(0xb8d3df, 0.00012);
 const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 1e8);
 camera.position.set(35, -45, 32);
 camera.up.set(0, 0, 1);
@@ -86,6 +87,22 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuff
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 viewport.appendChild(renderer.domElement);
+const skyMaterial=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,depthTest:false,fog:false,uniforms:{sunDirection:{value:new THREE.Vector3(-.38,-.32,.87).normalize()}},vertexShader:`varying vec3 vDirection;void main(){vDirection=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);gl_Position.z=gl_Position.w;}`,fragmentShader:`
+  varying vec3 vDirection;uniform vec3 sunDirection;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+  void main(){
+    vec3 d=normalize(vDirection);float h=clamp(d.z,0.0,1.0);
+    vec3 horizon=vec3(.76,.86,.90),middle=vec3(.28,.60,.82),zenith=vec3(.035,.18,.38);
+    vec3 color=mix(horizon,middle,smoothstep(0.0,.32,h));color=mix(color,zenith,smoothstep(.28,1.0,h));
+    float below=smoothstep(-.28,.02,d.z);color=mix(vec3(.55,.67,.70),color,below);
+    float sunDot=max(dot(d,sunDirection),0.0),disc=smoothstep(.99945,.99982,sunDot),glow=pow(sunDot,64.0);
+    color+=vec3(1.0,.78,.42)*(disc*1.15+glow*.32);
+    vec2 cloudUv=vec2(atan(d.y,d.x)*2.8,d.z*8.0);float cloud=noise(cloudUv)+.55*noise(cloudUv*2.03+4.7);cloud=smoothstep(1.02,1.30,cloud)*(1.0-smoothstep(.48,.82,h))*smoothstep(.02,.18,h);
+    color=mix(color,vec3(.94,.96,.97),cloud*.34);
+    gl_FragColor=vec4(color,1.0);
+  }`});
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(1,40,24),skyMaterial);skyDome.name='Procedural sky';skyDome.scale.setScalar(100000);skyDome.frustumCulled=false;skyDome.renderOrder=-1000;scene.add(skyDome);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = false;
 controls.screenSpacePanning = true;
@@ -109,7 +126,7 @@ const backgroundGroup=new THREE.Group();backgroundGroup.name='OpenStreetMap 3D b
 const osmGroundGroup=new THREE.Group(),osmBuildingsGroup=new THREE.Group(),osmRoadsGroup=new THREE.Group();osmGroundGroup.name='OSM ground';osmBuildingsGroup.name='OSM buildings';osmRoadsGroup.name='OSM roads';backgroundGroup.add(osmGroundGroup,osmBuildingsGroup,osmRoadsGroup);
 let terrainData=null,terrainVerticalOffset=0,regionalVerticalOffset=0,imageryVerticalOffset=0,osmBuildingsOffset=0,osmRoadsOffset=0;
 
-const state = { layers: [], selectedId: null, selectedEntity:null, origin: new THREE.Vector3(), nextId: 1, measuring:false, measureStart:null, measurePreview:null, measureAxis:'auto', measureTarget:'surface', snapPoint:null, autoPivot:true, pivotMode:false, calibratingTerrain:false, volumeMode:false, volumePoints:[], volumeResult:null, earthworkDrawing:false, earthworkPoints:[], earthworkBoundarySource:'พื้นที่ซ้อนทับทั้งหมด', earthworkResult:null, profileMode:false, profilePoints:[], profileResult:null };
+const state = { layers: [], selectedId: null, selectedEntity:null, origin: new THREE.Vector3(), nextId: 1, measuring:false, measureStart:null, measurePreview:null, measureAxis:'auto', measureTarget:'surface', snapPoint:null, skyEnabled:true, autoPivot:true, pivotMode:false, calibratingTerrain:false, volumeMode:false, volumePoints:[], volumeResult:null, earthworkDrawing:false, earthworkPoints:[], earthworkBoundarySource:'พื้นที่ซ้อนทับทั้งหมด', earthworkResult:null, profileMode:false, profilePoints:[], profileResult:null };
 const $ = (s) => document.querySelector(s);
 $('#sectionSample').closest('label').insertAdjacentHTML('afterend','<label>DXF Vertical Scale<select id="profileVerticalScale"><option value="1" selected>1× · True 1:1</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></label>');
 $('#profilePanel>small').textContent='DXF units: metres · Default Horizontal 1:1 / Vertical 1:1';
@@ -119,6 +136,7 @@ const UI_EN={'ชั้นข้อมูล':'Layers','วางไฟล์ท
 const UI_PLACEHOLDER_EN={'เช่น Sand Stockpile A':'e.g. Sand Stockpile A','ชื่อผู้สำรวจ':'Surveyor name','รายละเอียดเพิ่มเติม':'Additional details','เช่น Area L Earthwork':'e.g. Area L Earthwork'};
 Object.assign(UI_EN,{
   '＋ เพิ่มข้อมูล':'＋ Add Data','⌗ ดูทั้งหมด':'⌗ Fit All','◎ ตั้งศูนย์':'◎ Set Pivot',
+  'สลับพื้นหลังท้องฟ้าและพื้นหลังมืด':'Toggle sky and dark background',
   'หมุนรอบพื้นผิวใต้เมาส์โดยอัตโนมัติ':'Automatically rotate around the surface under the cursor','ย้ายจุดศูนย์กลางการหมุนและซูมด้วยตนเอง':'Manually move the rotation and zoom pivot',
   '↔ วัดระยะ':'↔ Measure','▱ วัดปริมาตร':'▱ Volume','＋ นำเข้าข้อมูลแรก':'＋ Import First Dataset',
   'ภาษารายงาน':'Report Language','วิธีใช้งาน':'Help','Zoom ดูทุกชั้นข้อมูล':'Fit all data layers',
@@ -150,7 +168,7 @@ $('#dropZone').addEventListener('drop', e => importFiles([...e.dataTransfer.file
 
 let renderRequested=false,rafId=0,contextLost=false;
 function invalidate(){if(renderRequested||contextLost||document.hidden)return;renderRequested=true;rafId=requestAnimationFrame(renderFrame)}
-function renderFrame(){renderRequested=false;if(contextLost||document.hidden)return;controls.update();renderer.render(scene,camera)}
+function renderFrame(){renderRequested=false;if(contextLost||document.hidden)return;controls.update();skyDome.position.copy(camera.position);renderer.render(scene,camera)}
 function resize() { const { clientWidth:w, clientHeight:h } = viewport;if(!w||!h)return; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();invalidate(); }
 new ResizeObserver(resize).observe(viewport);
 controls.addEventListener('change',invalidate);controls.addEventListener('start',invalidate);controls.addEventListener('end',invalidate);invalidate();
@@ -494,6 +512,7 @@ function pickModelPoint(e,targetSnap='surface',allowGround=true,surfaceOnly=fals
   const point=allowGround?raycaster.ray.intersectPlane(ground,new THREE.Vector3())?.clone():null;return point?{point,kind:'GROUND'}:null;
 }
 function setNavigationPivot(point,announce=true){controls.target.copy(point);controls.cursor.copy(point);if(announce){const size=Math.max(camera.position.distanceTo(point)/120,.08);pivotVisual.position.copy(point);pivotVisual.scale.setScalar(size);pivotVisual.visible=true;toast(`ตั้งศูนย์ใหม่ E ${fmt(point.x+state.origin.x)} · N ${fmt(point.y+state.origin.y)} · Z ${fmt(point.z+state.origin.z)}`)}else pivotVisual.visible=false;controls.update();invalidate()}
+function setSkyEnabled(enabled){state.skyEnabled=enabled;skyDome.visible=enabled;scene.background=enabled?skyBackground:darkBackground;scene.fog.color.set(enabled?0xb8d3df:0x07100f);scene.fog.density=enabled ? .00012 : .00035;$('#skyBtn').classList.toggle('active',enabled);$('#skyBtn').setAttribute('aria-pressed',String(enabled));localStorage.setItem('survey-cloud-sky',enabled?'1':'0');invalidate()}
 function setAutoPivot(enabled){state.autoPivot=enabled;$('#autoPivotBtn').classList.toggle('active',enabled);$('#autoPivotBtn').setAttribute('aria-pressed',String(enabled));localStorage.setItem('survey-cloud-auto-pivot',enabled?'1':'0');if(enabled){state.pivotMode=false;$('#pivotBtn').classList.remove('active');renderer.domElement.classList.remove('pivoting');pivotVisual.visible=false}invalidate()}
 function choosePivotAt(e){const pick=pickModelPoint(e,'surface');if(!pick)return;setAutoPivot(false);setNavigationPivot(pick.point);state.pivotMode=false;$('#pivotBtn').classList.remove('active');renderer.domElement.classList.remove('pivoting')}
 function autoPivotAt(e){if(!state.autoPivot||e.button!==0||state.measuring||state.volumeMode||state.earthworkDrawing||state.profileMode||state.calibratingTerrain||state.pivotMode)return;const pick=pickModelPoint(e,'surface',false);if(pick)setNavigationPivot(pick.point,false)}
@@ -610,6 +629,8 @@ $('#closeDownloadShelf').addEventListener('click',()=>{$('#downloadShelf').hidde
 $('#volumeBtn').addEventListener('click',()=>toggleVolume(!state.volumeMode));$('#closeVolume').addEventListener('click',()=>toggleVolume(false));$('#clearVolume').addEventListener('click',clearVolume);$('#undoVolumePoint').addEventListener('click',()=>{state.volumePoints.pop();state.volumeResult=null;updateVolumeGraphics()});$('#calculateVolume').addEventListener('click',calculateStockpileVolume);$('#exportVolumePdf').addEventListener('click',exportVolumePdf);$('#exportVolumeCsv').addEventListener('click',exportVolumeCsv);
 $('#earthworkBtn').addEventListener('click',()=>toggleEarthwork($('#earthworkPanel').hidden));$('#closeEarthwork').addEventListener('click',()=>toggleEarthwork(false));$('#calculateEarthwork').addEventListener('click',calculateEarthwork);$('#drawEarthworkBoundary').addEventListener('click',()=>setEarthworkDrawing(!state.earthworkDrawing));$('#useSelectedDxfBoundary').addEventListener('click',useSelectedDxfBoundary);$('#clearEarthworkBoundary').addEventListener('click',clearEarthworkBoundary);$('#exportEarthworkPdf').addEventListener('click',exportEarthworkPdf);
 $('#profileBtn').addEventListener('click',()=>toggleProfile(!state.profileMode));$('#closeProfile').addEventListener('click',()=>toggleProfile(false));$('#undoProfilePoint').addEventListener('click',()=>{state.profilePoints.pop();updateProfileGraphics()});$('#clearProfile').addEventListener('click',clearProfile);$('#generateProfile').addEventListener('click',generateProfile);$('#exportProfileCsv').addEventListener('click',exportProfileCsv);$('#exportProfileDxf').addEventListener('click',exportProfileDxf);$('#exportProfilePdf').addEventListener('click',exportProfilePdf);$('#sectionSelect').addEventListener('change',e=>{const section=state.profileResult?.sections[Number(e.target.value)];drawProfileChart($('#crossSectionChart'),section?.samples||[],'offset',`CROSS SECTION · STA ${section?.station.toFixed(3)||'—'}`)});
+$('#skyBtn').addEventListener('click',()=>setSkyEnabled(!state.skyEnabled));
+setSkyEnabled(localStorage.getItem('survey-cloud-sky')!=='0');
 $('#autoPivotBtn').addEventListener('click',()=>setAutoPivot(!state.autoPivot));
 setAutoPivot(localStorage.getItem('survey-cloud-auto-pivot')!=='0');
 $('#pivotBtn').addEventListener('click',()=>{if(state.measuring)toggleMeasure(false);if(state.volumeMode)toggleVolume(false);if(state.profileMode)toggleProfile(false);state.pivotMode=!state.pivotMode;if(state.pivotMode)setAutoPivot(false);$('#pivotBtn').classList.toggle('active',state.pivotMode);renderer.domElement.classList.toggle('pivoting',state.pivotMode);if(state.pivotMode)toast('คลิกตำแหน่งที่ต้องการใช้เป็นศูนย์กลางใหม่')});
